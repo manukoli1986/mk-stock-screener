@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Screener · mk-stock-screener{% endblock %}
+{% block content %}
+
+<div class="tiles">
+  {% for idx in indices %}
+  <div class="tile">
+    <div class="label">{{ idx.name }}</div>
+    <div class="value">{{ "{:,.2f}".format(idx.level) }}</div>
+    <div class="delta {{ 'up' if idx.change_pct >= 0 else 'down' }}">
+      {{ "▲" if idx.change_pct >= 0 else "▼" }} {{ "{:+.2f}".format(idx.change_pct) }}%
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>Market scan — NIFTY large caps</h2>
+  <div class="sub">
+    Universe: {{ universe_label }} — auto-populated daily from NSE's official constituent list.
+    Data: {{ source }}.
+    Breakout = close above 20-day high on ≥1.5× average volume. Entry ≈ 20-DMA pullback,
+    stop = 10-day swing low, target = 52-week high (or 2×ATR above it once there).
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Stock</th><th>Price ₹</th><th>Chg %</th><th>Signal</th>
+          <th>RSI 14</th><th>Vol ×avg</th><th>Off 52w high</th>
+          <th>Entry ₹</th><th>Stop ₹</th><th>Target ₹</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="sym">{{ r.symbol }}</td>
+          <td>{{ "{:,.2f}".format(r.price) }}</td>
+          <td class="{{ 'up' if r.change_pct >= 0 else 'down' }}">{{ "{:+.2f}".format(r.change_pct) }}</td>
+          <td style="text-align:left">
+            <span class="sig">
+              <span class="dot" style="background: var(--{{ r.signal_kind if r.signal_kind != 'neutral' else 'muted' }})"></span>
+              {{ r.signal }}
+            </span>
+          </td>
+          <td>{{ "{:.0f}".format(r.rsi) }}</td>
+          <td>{{ "{:.1f}".format(r.vol_ratio) }}×</td>
+          <td>{{ "{:.1f}".format(r.off_high_pct) }}%</td>
+          <td>{{ "{:,.0f}".format(r.entry) }}</td>
+          <td>{{ "{:,.0f}".format(r.stop) }}</td>
+          <td>{{ "{:,.0f}".format(r.target) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

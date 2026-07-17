@@ -1,0 +1,10 @@
+Requirements
+
+name - mk-stock-screener
+
+
+Scanned the markets 
+Identify the patterns 
+find opportunity
+track breakouts 
+Mapped Entry or Exit points - where to invest in point of time

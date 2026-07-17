@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Buffett Lens · mk-stock-screener{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Buffett Lens — long-term compounders</h2>
+  <div class="sub">
+    Each business is scored on six Buffett-style checks: return on equity ≥ 15%, debt/equity
+    below 0.6, net margin ≥ 10%, growing earnings, positive free cash flow, and a sane P/E.
+    Score 5–6 = strong candidate, 4 = watchlist. The one-liner is why the <em>business</em>
+    (its moat) qualifies — the numbers say whether <em>now</em> is reasonable.
+  </div>
+</div>
+
+{% for p in picks %}
+<div class="card">
+  <div style="display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline;">
+    <h2 style="margin:0">{{ p.symbol }}</h2>
+    <span style="color:var(--ink-2); font-size:13.5px">{{ p.name }}</span>
+    <span style="margin-left:auto; font-variant-numeric:tabular-nums">
+      {% if p.price %}₹{{ "{:,.2f}".format(p.price) }}{% endif %}
+      {% if p.pe %}<span style="color:var(--muted)"> · P/E {{ "{:.1f}".format(p.pe) }}</span>{% endif %}
+    </span>
+  </div>
+  <div style="margin:8px 0 10px">
+    <span class="sig">
+      <span class="dot" style="background: var(--{{ p.verdict_kind if p.verdict_kind != 'neutral' else 'muted' }})"></span>
+      {{ p.verdict }} · {{ p.score }}/6 checks
+    </span>
+  </div>
+  <div style="color:var(--ink-2); font-size:14px; margin-bottom:12px">
+    <strong style="color:var(--ink)">Why this business:</strong> {{ p.moat }}
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:8px">
+    {% for label, ok, value in p.checks %}
+    <span class="chip" title="{{ label }}">
+      {{ "✓" if ok else "✗" }} {{ label }}: <strong>{{ value }}</strong>
+    </span>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}mk-stock-screener{% endblock %}</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --border: rgba(11, 11, 11, 0.10);
+    --accent: #2a78d6;
+    --up: #006300;
+    --down: #d03b3b;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --border: rgba(255, 255, 255, 0.10);
+      --accent: #3987e5;
+      --up: #0ca30c;
+      --down: #e66767;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px 20px 48px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; margin-bottom: 6px; }
+  h1 { font-size: 22px; font-weight: 650; }
+  h1 .mk { color: var(--accent); }
+  nav { display: flex; gap: 4px; margin-left: auto; }
+  nav a {
+    color: var(--ink-2); text-decoration: none; padding: 6px 14px;
+    border-radius: 8px; font-weight: 500;
+  }
+  nav a.active { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+  nav a:hover { color: var(--ink); }
+  .meta-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+    color: var(--ink-2); font-size: 13px; margin: 10px 0 22px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 999px; padding: 3px 11px; font-size: 12.5px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    border-radius: 8px; padding: 6px 14px; font: inherit; font-size: 13px;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .tile .label { color: var(--ink-2); font-size: 13px; margin-bottom: 4px; }
+  .tile .value { font-size: 26px; font-weight: 650; }
+  .tile .delta { font-size: 13.5px; font-weight: 600; margin-top: 2px; }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 20px; margin-bottom: 18px;
+  }
+  h2 { font-size: 16px; font-weight: 650; margin-bottom: 4px; }
+  .sub { color: var(--ink-2); font-size: 13px; margin-bottom: 14px; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th {
+    text-align: right; color: var(--muted); font-weight: 500; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 8px 12px; border-bottom: 1px solid var(--grid); white-space: nowrap;
+  }
+  td {
+    text-align: right; padding: 9px 12px; border-bottom: 1px solid var(--grid);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  th:first-child, td:first-child { text-align: left; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .sym { font-weight: 600; }
+  .sig { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: normal; }
+  .sig .dot { flex: none; }
+  footer { color: var(--muted); font-size: 12.5px; margin-top: 26px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="mk">mk</span>-stock-screener</h1>
+  <nav>
+    <a href="/" class="{{ 'active' if page == 'screener' }}">Screener</a>
+    <a href="/intraday" class="{{ 'active' if page == 'intraday' }}">Intraday</a>
+    <a href="/buffett" class="{{ 'active' if page == 'buffett' }}">Buffett Lens</a>
+  </nav>
+</header>
+<div class="meta-bar">
+  <span class="chip">
+    <span class="dot" style="background: var(--{{ 'good' if market_open else 'critical' }})"></span>
+    NSE {{ 'open' if market_open else 'closed' }}
+  </span>
+  <span>Updated {{ updated }}</span>
+  <span id="countdown"></span>
+  <button class="btn" onclick="location.href='?force=1'">↻ Refresh now</button>
+</div>
+{% block content %}{% endblock %}
+<footer>
+  Source: Yahoo Finance (NSE delayed quotes). Signals are rule-based technicals; levels are reference points, not recommendations.<br>
+  Educational tool — not investment advice. Do your own research before trading.
+</footer>
+<script>
+  // Auto-refresh aligned with the server's 5-minute cache window.
+  let secs = {{ refresh_secs | default(300) }};
+  const el = document.getElementById("countdown");
+  setInterval(() => {
+    secs -= 1;
+    if (secs <= 0) { location.href = location.pathname; return; }
+    const m = Math.floor(secs / 60), s = String(secs % 60).padStart(2, "0");
+    el.textContent = `Auto-refresh in ${m}:${s}`;
+  }, 1000);
+</script>
+</body>
+</html>

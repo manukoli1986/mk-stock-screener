@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Intraday · mk-stock-screener{% endblock %}
+{% block content %}
+
+<div class="tiles">
+  {% for idx in indices %}
+  <div class="tile">
+    <div class="label">{{ idx.name }}</div>
+    <div class="value">{{ "{:,.2f}".format(idx.level) }}</div>
+    <div class="delta {{ 'up' if idx.change_pct >= 0 else 'down' }}">
+      {{ "▲" if idx.change_pct >= 0 else "▼" }} {{ "{:+.2f}".format(idx.change_pct) }}%
+    </div>
+  </div>
+  {% endfor %}
+  <div class="tile">
+    <div class="label">Opening read</div>
+    <div style="margin-top:6px">
+      <span class="sig">
+        <span class="dot" style="background: var(--{{ gap_kind if gap_kind != 'neutral' else 'muted' }})"></span>
+        {{ gap_text }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Index derivatives dashboard</h2>
+  <div class="sub">
+    Nearest-expiry option chain from NSE. Support = highest put OI strike, resistance = highest
+    call OI strike. PCR ≥ 1.2 reads bullish (put writing), ≤ 0.8 bearish (call writing).
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Index</th><th>Spot</th><th>Expiry</th><th>PCR</th>
+          <th>Support (Put OI)</th><th>Resistance (Call OI)</th><th>Max pain</th><th>Bias</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in derivatives %}
+        <tr>
+          <td class="sym">{{ d.symbol }}</td>
+          <td>{{ "{:,.2f}".format(d.spot) if d.spot else "—" }}</td>
+          <td style="text-align:left">{{ d.expiry }}</td>
+          <td>{{ "{:.2f}".format(d.pcr) }}</td>
+          <td>{{ "{:,.0f}".format(d.support) }}</td>
+          <td>{{ "{:,.0f}".format(d.resistance) }}</td>
+          <td>{{ "{:,.0f}".format(d.max_pain) }}</td>
+          <td style="text-align:left">
+            <span class="sig">
+              <span class="dot" style="background: var(--{{ d.bias_kind if d.bias_kind != 'neutral' else 'muted' }})"></span>
+              {{ d.bias }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:left">NSE option chain unavailable right now — retry with ↻ Refresh.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Global cues → India impact</h2>
+  <div class="sub">
+    US is the overnight handoff; Asia trades alongside our morning; Europe is the previous
+    session. Threshold-filtered — small moves are marked flat.
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Market</th><th>Region / session</th><th>Last</th><th>Chg %</th><th>Read for India</th></tr>
+      </thead>
+      <tbody>
+        {% for c in cues %}
+        <tr>
+          <td class="sym">{{ c.name }}</td>
+          <td style="text-align:left; color:var(--ink-2)">{{ c.group }}</td>
+          <td>{{ "{:.2f}%".format(c.last) if c.fmt == "pct" else "{:,.2f}".format(c.last) }}</td>
+          <td class="{{ 'up' if c.change_pct >= 0 else 'down' }}">{{ "{:+.2f}".format(c.change_pct) }}</td>
+          <td style="text-align:left; white-space:normal; min-width:280px">
+            {{ "▲" if c.direction > 0 else "▼" if c.direction < 0 else "•" }} {{ c.impact }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Expected uptrend today</h2>
+  <div class="sub">Sectors where the triggered global cues line up positive. Cues = net supporting signals.</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Sector</th><th>Key F&amp;O names</th><th>Drivers</th><th>Cues</th></tr></thead>
+      <tbody>
+        {% for r in uptrend %}
+        <tr>
+          <td class="sym" style="white-space:normal">{{ r.sector }}</td>
+          <td style="text-align:left; white-space:normal">{{ r.stocks }}</td>
+          <td style="text-align:left; white-space:normal; min-width:280px">{{ r.drivers }}</td>
+          <td>+{{ r.score }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:left">No sector has positive cue alignment right now — no fresh longs suggested by global tape.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Expected downtrend today</h2>
+  <div class="sub">Sectors where the triggered global cues line up negative.</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Sector</th><th>Key F&amp;O names</th><th>Drivers</th><th>Cues</th></tr></thead>
+      <tbody>
+        {% for r in downtrend %}
+        <tr>
+          <td class="sym" style="white-space:normal">{{ r.sector }}</td>
+          <td style="text-align:left; white-space:normal">{{ r.stocks }}</td>
+          <td style="text-align:left; white-space:normal; min-width:280px">{{ r.drivers }}</td>
+          <td>−{{ r.score }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:left">No sector has negative cue alignment right now — global tape is not pressing any short.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Session playbook (IST)</h2>
+  <div class="sub">Derivative trader's checklist through the day.</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Time</th><th>What to check</th></tr></thead>
+      <tbody>
+        <tr><td>By 08:30</td><td style="text-align:left; white-space:normal">US close, US futures, GIFT NIFTY level vs yesterday's NIFTY close — first gap estimate.</td></tr>
+        <tr><td>08:45–09:00</td><td style="text-align:left; white-space:normal">Asia tape (Nikkei, Hang Seng), Brent, USD/INR. Refresh this page for the cue table.</td></tr>
+        <tr><td>09:00–09:08</td><td style="text-align:left; white-space:normal">NSE pre-open auction — indicative NIFTY open, big pre-open movers.</td></tr>
+        <tr><td>09:15–09:30</td><td style="text-align:left; white-space:normal">Opening range. Avoid market orders in the first minutes; let spreads settle. Note OI support/resistance above.</td></tr>
+        <tr><td>09:30–11:00</td><td style="text-align:left; white-space:normal">Trend window — breakouts of opening range with volume; track India VIX for option premiums.</td></tr>
+        <tr><td>11:00–13:00</td><td style="text-align:left; white-space:normal">Usually range-bound; theta-friendly. Watch for OI shifts at the key strikes.</td></tr>
+        <tr><td>13:30</td><td style="text-align:left; white-space:normal">Europe opens — second sentiment impulse (FTSE/DAX futures).</td></tr>
+        <tr><td>14:30–15:30</td><td style="text-align:left; white-space:normal">Closing hour — intraday square-off flows; max-pain gravity on expiry days.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
