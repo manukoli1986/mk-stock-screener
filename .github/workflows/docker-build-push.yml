@@ -1,0 +1,62 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump level"
+        required: false
+        default: patch
+        type: choice
+        options: [patch, minor, major]
+
+concurrency:
+  group: docker-build-push
+  cancel-in-progress: false
+
+env:
+  IMAGE: manukoli1986/mk-stock-screener
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to create/push the git tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so the tagger can read existing tags
+
+      # Computes the next semantic version from existing git tags.
+      # Default bump is patch; use #major / #minor / #patch in a commit
+      # message to override, or the workflow_dispatch input.
+      - name: Compute next version
+        id: version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: ${{ github.event.inputs.bump || 'patch' }}
+          tag_prefix: v
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.version.outputs.new_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
